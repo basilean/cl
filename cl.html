@@ -1,0 +1,1272 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+//
+// Capitan's Log
+//
+// Andres Basile
+// GNU/GPL v3
+//
+// This try to be a minimal x4 game in 13k using every single trick 
+// in the book to save space. I wrote it in two weeks so is plenty
+// of room for improvements and expansion.
+//
+// About funny variable names and minification.
+// I got better results hand crafting the code than using common tools,
+// it is writting in a way where later I can use a simple Python script
+// to strip off newlines and comments.
+// ie:
+//  cat cl.html | ./stripper.py > index.html
+
+// G - Globals
+// I keep all global variables in this object.
+var G={};
+// G.s = Constant Size
+// G.S = Scale variable
+// G.a = Audio lock flag
+// G.T = Turn in Game
+// G.W = body.clientWidth
+// G.H = body.clientHeight
+// G.w = Map Width
+// G.h = Map Height
+// G.X = Map Size X
+// G.Y = Map Size Y
+// G.p = Players
+// G.J = Map Timer Interval
+// G.K = Unit Timer Interval
+// G.Z = Track Mouse Activity
+// G.i = User Input frame flag
+// G.I = UI status structure
+// G.I.s = Splash flag
+// G.I.i = Intro flag
+// G.I.b = Background Path
+// G.I.B = Button Path
+// G.I.f = Font Size
+// G.I.w = Scale Width
+// G.I.W = "constant" Size Width
+// G.I.h = Scale Height
+// G.I.H = "constant" Size Height
+// G.m = Map frame flag
+// G.M = Map tile [Y] [X] status structure
+// G.M[y][x] = Map Status [tile Y] [tile X]
+// G.M[y][x].d = Hex path
+// G.M[y][x].X = Tile X
+// G.M[y][x].Y = Tile Y
+// G.M[y][x].x = Center x position
+// G.M[y][x].y = Center y position
+// G.M[y][x].b = Background object
+// G.M[y][x].b.d = Star Path
+// G.u = Unit frame flag
+// G.U[p][i] = Unit [player] [id] status structure
+// G.U[p][i].p = Player
+// G.U[p][i].u = ID
+// G.U[p][i].n = Name
+// G.U[p][i].k = Killed Flag
+// G.U[p][i].c = Color
+// G.U[p][i].P = Shape Path
+// G.U[p][i].M = Base Moves
+// G.U[p][i].m = Moves Counter
+// G.U[p][i].A = Base Attack
+// G.U[p][i].a = Attack Counter
+// G.U[p][i].s = Shield Counter
+// G.U[p][i].w = Power Counter
+// G.U[p][i].v = View Counter
+// G.U[p][i].r = Rotation
+// G.U[p][i].S = Selected Flag
+// G.A = Audios
+G.A=[
+// Torpedo
+'/+MYxAAL4AKqAUEQAAIkueXfn8Th/xAH/xAc+sTg//8oCH4f4Jn8oD9H4IcEwfgg4oCAIO/+t6wwJwfB9frdpJ/H8v2+s/f//+MYxAsPeXb0yYYYAKZgsQDEv82E4IEpmP+Y6asFpcOp/7uDQQAsBEqFHPruiFv/hlBhS0hEPP8t//5Yt///KqiSWWftEhx//+MYxAgNIksWOcEoAr6qQIyQyIL6YfsNkwoTCEu9motN91qtd6Uyf/r//6ocr/6MjepPCQ7/+9iZeokAEQQDa5/KR7mdGslu/+MYxA4N0bL2GUIYAO/QhChAAp0Z0UvWu3MpVlZlE+zKXyHDX73//8YWJGQEDQyQWI2w3//kqvrfuP4W61kwQ22sWAGBcAMv/+MYxBEPSQrkAYhYAE8/xbARDo68zEp08/0vz0oq2qtfqYWT4RpIiFBNNTF86w4A/Lt/z5zOM+4C1dV/1U/26FAWqr/r5fsz/+MYxA4M2VJQAcMQAHD/gYCJmY6qr+pSuUpf9S0DATGAg78qdK/iI8IsGhgNf///g1PK',
+// Warp
+'/+MYxAALSAK5eUEQANABB3Y/BDLg+f4Pg+DgIHInDH8uCAIBj8P/5QMZd//6gQ/5d4OS5///+CByD6r7MxqF5QNVTlxFlol8/+MYxA0P8ZL8AYhAAM5LdB6A4tWPMRD35JdS1CkGh0LCKlf16CrNuvAfUXLX7/f39Jd/tWXgICEK9+UqfqqMrhJBlB3J0EnV/+MYxAgMaP8FccMYANOm1GiST9JlrZbH3pf1TYIxAql/hiICYiBFV5eck6iznUVeR/W8gXzspXioB/qZ8kkdYO2Tn1VcxBp2/+MYxBEPWQ78uUYYAODpSQ/7r2UXbFZOeN6Bx6wpfarasHcHAfP0vtIJH3VNCJ162PlfUpgPAXnCyghhgghpiiK9aysGMlat/+MYxA4QwKsNkYMYAJIPpOQJ0XN7GzAzRBYlOCcrKhJYCg84CxK4lsePWsXe1Kh+WJvLjrwSfdVW6v/oP/nf//cbBgRKvoYw/+MYxAYM4Cq1icIAAGAigqGoNHYiBoOYiBoNfWCoKg0DT//qBoGv/4Knf/BUFQV/EQNf/8FQV5YGgaqq',
+// Chime
+'/+MYxAALkep0AUBAAf//////////d3dEREREQXFxcXFxcXDsBcAAAEEQsG4Lwbg3FxQUFDEAAAPDw8PVA6I///////7JeYv5/+MYxAwPM5KwKYBQAbNIN7JUgF4UI0tb8NBONRW/BuGxY1K/////0/+uuYxhjHv/3sJYihoz/+6mkIYGi2UAbZnh1Vyn//96/+MYxAoPwyr2ecFoA7NfvX9BcDwV5cIR4xKQ7w54iQHwbS4Uz1zTRzz/293//1Ur9mbe3+3/v7f//r/////RQMmUAEgtUZcC/+MYxAYOuy7OWUEQA///+dmef9ugEAEiIRWN/9SlEqVm9ETp+9Z1//aKDgM/DT7M1af/zX+/3b2+n////6KGElfKAEglEgFA/+MYxAYOefbceYBoAqP///XZX6v/1XOniwWSq0UTIzTLgjX/hXl1JVl3VjuC9G6zwPCyf/5UVJAYWmD3//qedDv////zGqVq/+MYxAcLEdWUAcAQARS81SqUsxjVDAQE4UBEoGBTQps0FyG9CjorB0vm/FdC83//8vxV',
+// Enemy attack
+'/+MYxAAMaeJIAUIQACEIRg4GBnv/O/////////9Tn/////8hGUOAABFv//0wQ3dYPg++GPicHwfBAEAx4nD6rxAUwcFHfdo0/+MYxAkNy5q0AYUQAev/v//////2q//3/7muQhDo3b/0b7aw37on//3/9urnFw4tzn////b/57XIQXJV8aEG/WrJtt/6K+/+/+MYxAwPOd7YAcUQAJXp/W2nq1//VL7lMvVFZ2cqNVOhxxIVAUDEgqRCQZcPLus0G3dg65F6uilGWkVqHSJpqqqZmI/4HlAo/+MYxAoNUB8/GCnGAnB+WEgKAwbD0FS4CJWqAqUVunREkqRKq5Has5DoSJI91XVVfZ7KhZacU4YqVnAKC7qc0RsEBt4/d/iA/+MYxA8NQCrjGUUYAAP46KAYRlHmAMUqKklMDVQccJSphC5VzyRgiJU/9La4Y93u/u/pA3phqykf///////////9Weq/Wh0d/+MYxBUR6xa8KYcQAD/xjsJGYDOOcQFUruimZ3KbX/xRpAZwh1OrhKHugMiAgYkpv9PuynOcpBY3wVeWAzvtXdf//////////+MYxAgNQz38AcEQAf/////y/yllLMaUrlKX////9S/1LlKVpjMYxqt0M/9DGNCgLlLMZwoClBc=',
+// Extermination
+'/+MQxAAIEAbyWUAYABWlZCADAM4CAPg/hmUDGXB/icH3g+D5/8EHfxOf//8EFQBJI1ESAP/jEsQGCdjjIlGCEAADvAD91dnQ0aLpbBZ2Z9OC2QRjS7K/D3FF09//6f//V3VqrmK66wgi/+MQxAYKGMrsAYdYACsjJyCqPDNxNDIuJjSl47ky5tS3b1/riI4ju////+KKf/1V//8H7P/jEMQECODTEAGBKACRKnWVzi4n87kyDQf05X8gpCnLP9JdalHHNQQ/pXvUhRpnqkBAAOr/4xDEBwoQvxJZxxAAx2z3ExFkug3HTeUDLvjAA+1RvsKTEOp+/5Z2f25H9uj6lQB4KNBg/+MSxAUJyL8K1AGKLAgBPGzJAh/s53L8YB/YQfMs7+wO6rv2/W6tmnR35zd8uzQqElO1aMn/4xDEBQmA9xY4EkpKPniVvhui/c2QQpPOHvcY+q0fVTC0+UptBjj7y36/+r/pT5UNfP+a/+MQxAYIydr8AAHKNAgnu3KIB0f4EA//opvm//Z/v/8xfr8xfjfxHp/J1QL565GJAJ+SXP/jEMQJB+i/MlgCDjIyM3W4JdeKgGmdgqRz5wPn8eJfW7d8sgBnWbbdtg8Aa/XY0Jx1EkP/4xLEEAjQbzr8AY4un6oDoBJDdpsxJv2av/d//+j9OmoJrkb/40ybD2f1F08ACv/6CPVG///jEMQUB5GPDMgBRHrUX9X+Eb1HZs26agJaI05ZUP29AgC/X8d9H+nwOJv6N1kfjrfXogH/4xDEHAgxP0JZRTgCE097vlbj/3Wq40Dew+SBLdJJd9C2KSYuKl/NC9LSAkyjsvfvUtOR/+MQxCINaNbsAYtgANnZa3OskWJQG6nUCNf/ru/+nsy1uMYxjGMZIiIVCoVImpepLIiIVP/jEsQTCEh6zAHJMAEJAkAQkiCgvwgoKCn5BQ==',
+// BSG Phaser
+'/+MYxAALsAKMQUEQAB08oCGJwQBB0oc8QOlz/qBD/rBw5z/KBj+Iw///Lh/yZQHz//wcBAEAxBAMYOBh//+P/5LNP9ZqMYGw/+MYxAwPOaLoAYEQAGM/+LXT3Sj/29L0ZjzmpBOCAa/ONAYrTadSo1/CghEYaeUQoNB2KHPQBPoMiUp71SoDbbW2xgD////l/+MYxAoNMLcaWcMYAp9l3JXaRjYHVFazcEwIyp1drxCFzLUBYDHokC4hLHg2mMHBR7zcRYv/o64Kq5mZiI+wBKvmlHmGUBhj/+MYxBAMkFdTGABEBgNIGhIMBhqDYvrfMzaZl7BrE1IE5/B60jE7/+1mM6CeyLoqG/8ljP8umnG5DywGtkxTucTkkIj657T7/+MYxBgM4SLmQUEYAA4eah3tlut94rUIAw4KP6f1WAqtLPO////7lqrtf/9amhJiejE/NiKCx3EBEAhEZVBRA685Ok3lajKz/+MYxB8SI1rQAYAoAJlcsyV0VP/8VOzuwu1TmGu6CBDlUmzHbT6fYWnPZTjf+ZxMqhEVFj/Wmv6GmeUsxmMZ65upSzGZDP/+/+MYxBEMsvokAcAQAVLKVupat////y//oajylmMyGf6lLQ0olwVgaCnf/Ggo7w=='
+];
+// E - Shortcut Elements
+// This object keeps references to elements common used.
+var E={};
+// E.b = document.body
+// E.a = Audio Player
+// E.m = Map Canvas
+// E.M = Map Context
+// E.u = Unit Canvas
+// E.U = Unit Context
+// E.f = Fog Canvas
+// E.F = Fog Context
+// E.i = User Input Canvas
+// E.I = User Input Context
+
+// Functions Index
+// It is not that hard as it looks having an index.
+// a -
+// A - Audio Play
+// b -
+// B -
+// c -
+// C - Clear Rect
+// d - Mouse Down
+// D - Mouse Up
+// e - Reserved Event
+// E - Reserved Global
+// f - Random Float
+// F - Math.floor
+// g - Text Align
+// G - Reserved Global
+// h - Star
+// H - Hex
+// i - User Input Calculate
+// I - User Input Draw
+// j - Fill
+// J - Fill Rect
+// k - Stroke
+// K - Stroke Style
+// l - Loop
+// L - Load
+// m - Map Calculate
+// M - Map Draw
+// n - Off Top
+// N - Off Left
+// o - Set Top
+// O - Identify Map Tile
+// p - Game Over
+// P - Is in Path?
+// q - Set Left
+// Q - Create Canvas
+// r - Angle to Radian
+// R - Resize
+// s - Random Signed
+// S - Start Game
+// t - Reserved Tile
+// T - Fill Text
+// u - Unit Calculate
+// U - Unit Draw
+// v - Mouse Move
+// V - Random RGBA
+// w - Fill Style
+// W - Wheel
+// x - Reserved Local
+// X
+// y - Reserved Local
+// Y - Font
+// z - On Top
+// Z - On Left
+// ua - Unit Add
+// um - Unit Move
+// uk - Unit Attack
+// xr - Calculate Rotation X
+// yr - Calculate Rotation Y
+// on - On Top
+// oN - On Left
+// li - Line
+// at - Attack Pointer
+// uN - Unit Model NCC
+
+
+// // // Common Helpers // // //
+// A - Audio Play
+// It will play sounds from an array using a lock flag to avoid nasty messages.
+function A(n) {
+ if(G.a){
+  return;
+ }
+ G.a=1;
+ E.a.src='data:audio/mp3;base64,'+G.A[n];
+ E.a.load();
+ E.a.play();
+}
+// F - Math.floor
+// Just a wrapper to save bytes.
+function F(n){
+ return Math.floor(n);
+}
+// xr - Calculate Rotation X
+// Used to rotate matrix shapes/paths.
+function xr(x,y,a){
+ return x*Math.cos(a)-y*Math.sin(a);
+}
+// yr - Calculate Rotation Y
+// Used to rotate matrix shapes/paths.
+function yr(x,y,a){
+ return x*Math.sin(a)+y*Math.cos(a);
+}
+// s - Random Signed
+// Get a signed random number.
+function s(m,M){
+ return Math.floor(Math.random()*(M-m)+m)*Math.cos(Math.PI*Math.round(Math.random()));
+}
+// r - Radian from degree
+// Convert degrees to radians, used to rotate shapes/paths.
+function r(a){
+ return a*Math.PI/180;
+}
+// f - Random Float
+// Get an unsigned random float.
+function f(m,M){
+ return Math.random()*(M-m)+m;
+}
+
+// // // Elements Helpers // // //
+// Q - Create Canvas
+// Wrapper to create canvas element.
+function Q(i,z,c,C){
+ E[c]=document.createElement('canvas');
+ E[C]=E[c].getContext('2d');
+ E[c].id=i;
+ E[c].style.zIndex=z;
+ E[c].style.display='block';
+ E[c].style.position='absolute';
+ E[c].style.left=0;
+ E[c].style.top=0;
+ E.b.appendChild(E[c]);
+}
+// o - Set Top
+// Used when you grab and move map.
+function o(t){
+ E.m.style.top=t;
+ E.u.style.top=t;
+ E.f.style.top=t;
+}
+// q - Set Left
+// Used when you grab and move map.
+function q(l){
+ E.m.style.left=l;
+ E.u.style.left=l;
+ E.f.style.left=l;
+}
+// on - On Top
+// Calculates top having in mind map off screen.
+function on(y){
+ return parseInt(E.m.style.top)+y;
+}
+// oN - On Left
+// Calculates left having in mind map off screen.
+function oN(x){
+ return parseInt(E.m.style.left)+x;
+}
+// n - Off Top
+// Calculates top removing map off screen.
+function n(y){
+ return parseInt(E.m.style.top)*-1+y;
+}
+// N - Off Left
+// Calculates left removing map off screen.
+function N(x){
+ return parseInt(E.m.style.left)*-1+x;
+}
+
+// // // Canvas Helpers // // //
+// Most of these wrappers are to save space on common canvas operations.
+//
+// P - Is in Path?
+// Used to relate mouse events wit game objects.
+// P(context, path, point_x, point_y)
+function P(c,p,x,y){
+ return c.isPointInPath(p,x,y);
+}
+// V - Random RGBA
+// Get a random color between some parameters.
+// V(red_min, red_max, green_min, green_max, blue_min, blue_max, alpha_min, alpha_max)
+function V(r,R,g,G,b,B,m,M){
+ return 'rgba('+F(f(r,R))+','+F(f(g,G))+','+F(f(b,B))+','+f(m,M)+')';
+}
+// w - Fill Style
+function w(a,b){
+ a.fillStyle=b;
+}
+// j - Fill
+function j(a,b){
+ a.fill(b);
+}
+// J - Fill Rect
+function J(c,x,y,w,h){
+ c.fillRect(x,y,w,h);
+}
+// Y - Font
+function Y(c,s){
+ c.font=s+'px sans';
+}
+// T - Text
+function T(c,t,x,y,w){
+ c.fillText(t,x,y,w);
+}
+// g - Text Align
+function g(c,a){
+ c.textAlign=a; 
+}
+// C - Clear Rect
+function C(c,x,y,w,h){
+ c.clearRect(x,y,w,h);
+}
+// K - Stroke Style
+function K(c,a){
+ c.strokeStyle=a;
+}
+// k - Stroke
+function k(c,a){
+ c.stroke(a);
+}
+
+// // // User Input // // //
+// This is the upper canvas and will catch most events.
+// i - User Input Calculate
+// This function recalculates all canvas objects according to whole screen.
+// ie: It is fired on browser resize.
+function i(){
+ E.i.width=G.W;
+ E.i.height=G.H;
+ G.I.w=G.W/(G.s*10)||1;
+ G.I.W=G.I.w*G.s;
+ G.I.h=G.H/(G.s*10)||1;
+ G.I.H=G.I.h*G.s;
+ G.I.f=16*G.I.h;
+// 
+ G.I.b=new Path2D('M '+(G.I.W)+','+(G.I.H)+' '+(G.W-G.I.W)+','+(G.I.H)+' '+(G.W-G.I.W)+','+(G.H-G.I.H*3)+' '+(G.W-G.I.W*3)+','+(G.H-G.I.H*3)+' '+(G.W-G.I.W*3)+','+(G.I.H*2)+' '+(G.I.W)+','+(G.I.H*2)+' z');
+ G.I.B=new Path2D('M '+(G.W-G.I.W*3)+','+(G.H-G.I.H*2)+' '+(G.W-G.I.W)+','+(G.H-G.I.H*2)+' '+(G.W-G.I.W)+','+(G.H-G.I.H)+' '+(G.W-G.I.W*3)+','+(G.H-G.I.H)+' z');
+ G.i=1;
+ G.I.F=new Path2D('M 1,1 '+(G.W-1)+',1 '+(G.W-1)+','+(G.H+1)+' 1,'+(G.H+1)+' z');
+}
+// I - User Input Draw
+// It takes what was previously calculated and draw canvas according to flags.
+function I(){
+ C(E.I,0,0,E.i.width,E.i.height);
+// Splash screen flag
+ if(G.I.s){
+  w(E.I,'#000');
+  J(E.I,0,0,G.W,G.H);
+  w(E.I,'#770');
+  j(E.I,G.I.b);
+  if(G.I.O){
+   G.I.O--;
+   w(E.I,'#707');
+   G.i=1;
+  }
+  j(E.I,G.I.B);
+  w(E.I,'#ddd');
+  Y(E.I,G.I.f*3);
+  g(E.I,'left');
+  T(E.I,'Captain\'s Log',G.I.W,G.I.H*1.8,G.W-G.I.W*2);
+  Y(E.I,G.I.f*2);
+  g(E.I,'center');
+  T(E.I,'START',G.W-G.I.W*2,G.H-G.I.H*1.3,G.I.W*2);
+  g(E.I,'left');
+// Intro flag
+  if(G.I.i){
+   T(E.I,'Stardate 99298.79, while investigating a starbase',G.I.W*1.2,G.I.H*2.8,G.W-G.I.W*4.4);
+   T(E.I,'appearance, we got dragged in what our new',G.I.W*1.2,G.I.H*3.4,G.W-G.I.W*4.4);
+   T(E.I,'allies call a crossover. Now, both of us',G.I.W*1.2,G.I.H*4,G.W-G.I.W*4.4);
+   T(E.I,'are trapped here looking a way back home.',G.I.W*1.2,G.I.H*4.6,G.W-G.I.W*4.4);
+   T(E.I,'Our priority is to secure the quadrant.',G.I.W*1.2,G.I.H*5.2,G.W-G.I.W*4.4);
+  }
+// Victory flag
+  if(G.I.L){
+   T(E.I,'You Won! People will know about two realities',G.I.W*1.2,G.I.H*2.8,G.W-G.I.W*4.4);
+   T(E.I,'working togheter to save humanity.',G.I.W*1.2,G.I.H*3.4,G.W-G.I.W*4.4);
+   T(E.I,'Wait a minute... thats a rip deeper in space! =P',G.I.W*1.2,G.I.H*4,G.W-G.I.W*4.4);
+  }
+// Defeat flag
+  if(G.I.l){
+   T(E.I,'You Lose! This tale will never be told.',G.I.W*1.2,G.I.H*2.8,G.W-G.I.W*4.4);
+  }
+  return;
+ }
+// In Game UI
+ K(E.I,'#000');
+ E.I.lineWidth=4;
+ k(E.I,G.I.F);
+ w(E.I,'#770');
+  if(G.I.O){
+   G.I.O--;
+   w(E.I,'#707');
+   G.i=1;
+  }
+ j(E.I,G.I.B);
+ w(E.I,'#ddd');
+ Y(E.I,G.I.f*2);
+ g(E.I,'center');
+ T(E.I,'Next Turn',G.W-G.I.W*2,G.H-G.I.H*1.45,G.I.W*2);
+ Y(E.I,G.I.f);
+ T(E.I,'Turn: '+G.T,G.W-G.I.W*2,G.H-G.I.H*1.15,G.I.W*2);
+// Unit posible actions
+ if(G.Z.c&&G.Z.p){
+  li(E.I,oN(G.Z.m.x),on(G.Z.m.y),oN(G.Z.M.x),on(G.Z.M.y),G.Z.c);
+  E.I.stroke(G.Z.p(oN(G.Z.M.x),on(G.Z.M.y),G.s*G.S,90));
+ }
+}
+
+// // // Path Shapes // // //
+// Using dynamic paths instead of static, I'm able to draw and redraw in
+// different position, size and rotation without need of canvas methods.
+// While they are hard to create, I found them a good choice.
+
+// li - Line
+// This one is just to save space.
+function li(c,x,y,X,Y,C){
+  K(c,C);
+  c.beginPath();
+  c.moveTo(x,y);
+  c.lineTo(X,Y);
+  c.closePath();
+  c.stroke();
+}
+// h - Star
+// This function creates a "random" star showed in background.
+function h(x,y,t,X,Y,S){
+ let d=[
+  [X+x,Y+y+S],
+  [X+x+S,Y+y],
+  [X+x,Y+y-S],
+  [X+x-S,Y+y]
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+// H - Hex
+// This function creates a map tile hex.
+// Resulting path is later used to relate mouse events to map tiles.
+// H(center_point_x, canter_point_y, size)
+function H(x,y,t){
+ let d=[
+  [x,y+t/2],
+  [x+t/2,y+t/6],
+  [x+t/2,y-t/6],
+  [x,y-t/2],
+  [x-t/2,y-t/6],
+  [x-t/2,y+t/6]
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+// at - Attack Pointer
+// It will be draw when attack action is possible
+function at(x,y,t,a){
+ var R=r(a);
+ var d=[
+  [x+xr(0,t/3,R),y+yr(0,t/3,R)],
+  [x+xr(t/3,0,R),y+yr(t/3,0,R)],
+  [x+xr(0,-t/3,R),y+yr(0,-t/3,R)],
+  [x+xr(-t/3,0,R),y+yr(-t/3,0,R)],
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+// uN - Unit Model 1701
+// Player flagship shape.
+function uN(x,y,t,a){
+ var R=r(a);
+ var d=[
+  [x+xr(0,t/12*5,R),y+yr(0,t/12*5,R)],
+  [x+xr(t/6,t/4,R),y+yr(t/6,t/4,R)],
+  [x+xr(t/12,t/12,R),y+yr(t/12,t/12,R)],
+  [x+xr(t/12,-t/12,R),y+yr(t/12,-t/12,R)],
+  [x+xr(t/6,-t/12,R),y+yr(t/6,-t/12,R)],
+  [x+xr(t/6,0,R),y+yr(t/6,0,R)],
+  [x+xr(t/4,0,R),y+yr(t/4,0,R)],
+  [x+xr(t/4,-t/4,R),y+yr(t/4,-t/4,R)],
+  [x+xr(t/6,-t/4,R),y+yr(t/6,-t/4,R)],
+  [x+xr(t/6,-t/6,R),y+yr(t/6,-t/6,R)],
+  [x+xr(-t/6,-t/6,R),y+yr(-t/6,-t/6,R)],
+  [x+xr(-t/6,-t/4,R),y+yr(-t/6,-t/4,R)],
+  [x+xr(-t/4,-t/4,R),y+yr(-t/4,-t/4,R)],
+  [x+xr(-t/4,0,R),y+yr(-t/4,0,R)],
+  [x+xr(-t/6,0,R),y+yr(-t/6,0,R)],
+  [x+xr(-t/6,-t/12,R),y+yr(-t/6,-t/12,R)],
+  [x+xr(-t/12,-t/12,R),y+yr(-t/12,-t/12,R)],
+  [x+xr(-t/12,t/12,R),y+yr(-t/12,t/12,R)],
+  [x+xr(-t/6,t/4,R),y+yr(-t/6,t/4,R)]
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+// Unit Model B5
+function uB(x,y,t,a){
+ var R=r(a);
+ var d=[
+  [x+xr(-t/12,t/3,R),y+yr(-t/12,t/3,R)],
+  [x+xr(t/12,t/3,R),y+yr(t/12,t/3,R)],
+  [x+xr(t/12,t/4,R),y+yr(t/12,t/4,R)],
+  [x+xr(t/4,t/12,R),y+yr(t/4,t/12,R)],
+  [x+xr(t/3,t/12,R),y+yr(t/3,t/12,R)],
+  [x+xr(t/3,-t/12,R),y+yr(t/3,-t/12,R)],
+  [x+xr(t/4,-t/6,R),y+yr(t/4,-t/6,R)],
+  [x+xr(t/4,-t/4,R),y+yr(t/4,-t/4,R)],
+  [x+xr(t/6,-t/4,R),y+yr(t/6,-t/4,R)],
+  [x+xr(t/12,-t/3,R),y+yr(t/12,-t/3,R)],
+  [x+xr(-t/12,-t/3,R),y+yr(-t/12,-t/3,R)],
+  [x+xr(-t/12,-t/4,R),y+yr(-t/12,-t/4,R)],
+  [x+xr(-t/4,-t/12,R),y+yr(-t/4,-t/12,R)],
+  [x+xr(-t/3,-t/12,R),y+yr(-t/3,-t/12,R)],
+  [x+xr(-t/3,t/12,R),y+yr(-t/3,t/12,R)],
+  [x+xr(-t/4,t/6,R),y+yr(-t/4,t/6,R)],
+  [x+xr(-t/4,t/4,R),y+yr(-t/4,t/4,R)],
+  [x+xr(-t/6,t/4,R),y+yr(-t/6,t/4,R)],
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+// uG - Unit Model BSG
+function uG(x,y,t,a){
+ var R=r(a);
+ var d=[
+  [x+xr(t/12,-t/4,R),y+yr(t/12,-t/4,R)],
+  [x+xr(t/12,-t/3,R),y+yr(t/12,-t/3,R)],
+  [x+xr(t/6,-t/3,R),y+yr(t/6,-t/3,R)],
+  [x+xr(t/6,-t/4,R),y+yr(t/6,-t/4,R)],
+  [x+xr(t/4,-t/4,R),y+yr(t/4,-t/4,R)],
+  [x+xr(t/4,t/12,R),y+yr(t/4,t/12,R)],
+  [x+xr(t/12,t/12,R),y+yr(t/12,t/12,R)],
+  [x+xr(t/12,t/6,R),y+yr(t/12,t/6,R)],
+  [x+xr(t/6,t/6,R),y+yr(t/6,t/6,R)],
+  [x+xr(t/12,t/3,R),y+yr(t/12,t/3,R)],
+  [x+xr(-t/12,t/3,R),y+yr(-t/12,t/3,R)],
+  [x+xr(-t/6,t/6,R),y+yr(-t/6,t/6,R)],
+  [x+xr(-t/12,t/6,R),y+yr(-t/12,t/6,R)],
+  [x+xr(-t/12,t/12,R),y+yr(-t/12,t/12,R)],
+  [x+xr(-t/4,t/12,R),y+yr(-t/4,t/12,R)],
+  [x+xr(-t/4,-t/4,R),y+yr(-t/4,-t/4,R)],
+  [x+xr(-t/6,-t/4,R),y+yr(-t/6,-t/4,R)],
+  [x+xr(-t/6,-t/3,R),y+yr(-t/6,-t/3,R)],
+  [x+xr(-t/12,-t/3,R),y+yr(-t/12,-t/3,R)],
+  [x+xr(-t/12,-t/4,R),y+yr(-t/12,-t/4,R)],
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+// uF - Unit model Cyl
+function uF(x,y,t,a){
+ var R=r(a);
+ var d=[
+  [x+xr(0,t/12*5,R),y+yr(0,t/12*5,R)],
+  [x+xr(t/6,t/6,R),y+yr(t/6,t/6,R)],
+  [x+xr(t/12,t/12,R),y+yr(t/12,t/12,R)],
+  [x+xr(t/12,0,R),y+yr(t/12,0,R)],
+  [x+xr(t/5,-t/6,R),y+yr(t/5,-t/6,R)],
+  [x+xr(t/4,-t/12,R),y+yr(t/4,-t/12,R)],
+  [x+xr(t/4,t/12,R),y+yr(t/4,t/12,R)],
+  [x+xr(t/3,0,R),y+yr(t/3,0,R)],
+  [x+xr(t/3,-t/6,R),y+yr(t/3,-t/6,R)],
+  [x+xr(t/4,-t/3,R),y+yr(t/4,-t/3,R)],
+  [x+xr(t/6,-t/3,R),y+yr(t/6,-t/3,R)],
+  [x+xr(t/12,-t/4,R),y+yr(t/12,-t/4,R)],
+  [x+xr(-t/12,-t/4,R),y+yr(-t/12,-t/4,R)],
+  [x+xr(-t/6,-t/3,R),y+yr(-t/6,-t/3,R)],
+  [x+xr(-t/4,-t/3,R),y+yr(-t/4,-t/3,R)],
+  [x+xr(-t/3,-t/6,R),y+yr(-t/3,-t/6,R)],
+  [x+xr(-t/3,0,R),y+yr(-t/3,0,R)],
+  [x+xr(-t/4,t/12,R),y+yr(-t/4,t/12,R)],
+  [x+xr(-t/4,-t/12,R),y+yr(-t/4,-t/12,R)],
+  [x+xr(-t/5,-t/6,R),y+yr(-t/5,-t/6,R)],
+  [x+xr(-t/12,0,R),y+yr(-t/12,0,R)],
+  [x+xr(-t/12,t/12,R),y+yr(-t/12,t/12,R)],
+  [x+xr(-t/6,t/6,R),y+yr(-t/6,t/6,R)],
+ ];
+ return new Path2D('M '+d.map(function(e){return e.join(',')}).join(' ')+' z');
+}
+
+// // // Units // // //
+// This canvas draws units, it has a constant refresh rate for effects but
+// also can redraw on demand setting its flag.
+
+// u - Unit Calculate
+// The size is calculated according to map.
+// Go unit by unit and reshape when needed.
+function u(){
+ E.u.width=G.w;
+ E.u.height=G.h;
+ for(let p=0;p<G.p;p++){
+  for(let i=0;i<G.U[p].length;i++){
+   var u=G.U[p][i];
+// Get new X, Y center points from actual tile.
+   u.x=G.M[u.Y][u.X].x;
+   u.y=G.M[u.Y][u.X].y;
+// Redraw unit using global size and scale.
+   u.d=u.P(u.x,u.y,G.s*G.S,u.r);
+  }
+ }
+ G.u=1
+}
+// U - Unit Draw
+// Draw the canvas according to Unit structure.
+function U(){
+ C(E.U,0,0,E.m.width,E.m.height);
+// Go by player... by unit...
+ for(let p=0;p<G.p;p++){
+  for(let i=0;i<G.U[p].length;i++){
+   var u=G.U[p][i];
+// If killed flag? noting to do.
+   if(u.k){
+    continue;
+   }
+// Attack effect
+   if(u.T){
+    u.T--;
+    E.U.save();
+    E.U.setLineDash([4,G.s/6]);
+    E.U.lineWidth=G.I.f/3;
+    li(E.U,u.x,u.y,u.tx,u.ty,'rgba('+u.l+',0.9)');
+    E.U.restore();
+   }
+// Move effect
+   if(u.Q){
+    u.Q--;
+    E.U.lineWidth=G.I.f;
+    li(E.U,u.sx,u.sy,u.x,u.y,'rgba('+u.l+',0.6)');
+   }
+// If redraw flag? do it just for this unit.
+   if(u.D){
+    u.D=0;
+    u.d=u.P(u.x,u.y,G.s*G.S,u.r);
+   }
+   w(E.U,u.c);
+   j(E.U,u.d);
+// Shield around unit
+   E.U.lineWidth=G.I.f/6;
+   K(E.U,'rgba('+u.l+','+(u.s/100)+')');
+   k(E.U,u.d);
+// If selected flag? draw a table with its properties.
+   if(u.S){
+    u.S--;
+    w(E.U,'rgba(255,255,255,0.6)');
+    Y(E.U,G.I.f);
+    J(E.U,u.x,u.y,G.I.f*3.2,G.I.f*5.4);
+    w(E.U,'#000');
+// Name
+    T(E.U,u.n,u.x,u.y+G.I.f,G.I.f*3);
+// Shield
+    T(E.U,'S: '+u.s,u.x,u.y+G.I.f*2.2,G.I.f*3);
+// Power
+    T(E.U,'P: '+u.w,u.x,u.y+G.I.f*3.2,G.I.f*3);
+// Movements left
+    T(E.U,'M: '+u.m,u.x,u.y+G.I.f*4.2,G.I.f*3);
+// Attacks left
+    T(E.U,'A: '+u.a,u.x,u.y+G.I.f*5.2,G.I.f*3);
+   }
+  }
+ }
+}
+// Unit Add
+// This will add a unit in the X,Y tile.
+// It will overwrite if there were an existing one.
+// ua(player, id, tile_x, tile_y, shape, color, name,
+//    base_movements, base_attacks, power, shield, view_distance, rgb_shield_color, sound_attack, sound_select)
+function ua(p,i,x,y,P,c,n,M,A,w,s,v,l,t,q){
+ G.U[p][i]={
+  'p':p,
+  'i':i,
+  'n':n,
+  'x':G.M[y][x].x,
+  'y':G.M[y][x].y,
+  'X':x,
+  'Y':y,
+  'P':P,
+  'c':c,
+  'r':-90,
+  'M':M,
+  'm':M,
+  'A':A,
+  'a':A,
+  's':s,
+  'w':w,
+  'v':v,
+  'k':null,
+  'l':l,
+  't':t,
+  'q':q
+ };
+// Also add a reference in the map structure.
+ G.M[y][x].u={'p':p,'i':i};
+ if(p==0){
+// If it is a player unit, also show around in map.
+  ma(G.M[y][x],v);
+ }
+}
+// um - Unit Move
+// It takes a source and a target tile object from map structure.
+// Get the unit from source and move it to target if empty.
+function um(s,t){
+ if(!s||!s.u||!t||t.u){
+  return;
+ }
+// Get the Unit from source tile reference.
+ let u=G.U[s.u.p][s.u.i];
+// If the unit has moves remains
+ if(u.m>0){
+// Copy the reference
+  t.u=s.u;
+// Discount one move to unit
+  u.m--;
+// Effect
+  u.Q=1;
+  u.sx=u.x;
+  u.sy=u.y;
+// Update position coordinates.
+  u.x=t.x;
+  u.y=t.y;
+// Update tile X and Y references.
+  u.X=t.X;
+  u.Y=t.Y;
+// Set redraw unit flag.
+  u.D=1;
+// If player unit, show around.
+  if(s.u&&s.u.p==0){
+   ma(t,u.v);
+  }
+// Clear source tile unit reference.
+  s.u=null;
+// Set redraw map flag.
+  G.m=1;
+ }
+}
+
+// uk - Unit Attack
+// Similar way, this function will get a tile source and target.
+// It will get units from tiles references and handle attack.
+function uk(S,T){
+ if(!S||!S.u||!T||!T.u||S.u.p==T.u.p){
+  return;
+ }
+// Get the units objects from Unit structure.
+ var s=G.U[S.u.p][S.u.i];
+ var t=G.U[T.u.p][T.u.i];
+// Effect
+ s.tx=T.x;
+ s.ty=T.y;
+ s.T=3;
+// Discount an attack from source.
+ s.a--;
+// Damage target shield according to source power.
+ t.s-=s.w;
+// If shield goes below zero, it has been destroyed.
+ if(t.s<0){
+// Set killed flag with turn number.
+  t.k=G.T;
+// Clear tile reference to unit.
+  T.u=null;
+ }
+// Set flag to redraw unit canvas.
+ G.u=1;
+}
+// // // Map and Fog // // //
+// TODO: Improve drawing just visible tiles instead whole map.
+// This size will be defined by map X,Y size and zoom (scale).
+// These are the lowest and upper canvas layer excluding user interface.
+// Lowest shows a dynamic background where your units can see.
+// Upper will show a static (fog) or blank (not explored) tile hidding units.
+
+// m - Map Calculate
+// Recalculate map size and object when zoom in/out (scale)
+function m(){
+ G.h=(G.s/3*2)*G.Y*G.S+G.s/3*G.S;
+ G.w=G.s*G.X*G.S+G.s*G.S/2;
+ E.m.width=G.w;
+ E.m.height=G.h;
+ E.f.width=G.w;
+ E.f.height=G.h;
+ for(let y=0;y<G.Y;y++){
+// Once again, handle odd Y rows.
+  let o=(y%2)*G.s*G.S/2;
+  for(let x=0;x<G.X;x++){
+// Calculate center x and y points.
+   let a=x*G.s*G.S+o+G.s*G.S/2;
+   let b=y*G.s/3*2*G.S+G.s*G.S/2;
+   G.M[y][x].x=a;
+   G.M[y][x].y=b;
+// Reshape hex and background.
+   G.M[y][x].d=H(a,b,G.s*G.S);
+   G.M[y][x].b.d=h(a,b,G.s*G.S,G.M[y][x].b.x*G.S,G.M[y][x].b.y*G.S,G.M[y][x].b.s*G.S);
+  }
+ }
+// Redraw map.
+ G.m=1
+}
+// M - Map Draw
+function M(){
+ w(E.F,'#000');
+ J(E.M,0,0,E.m.width,E.m.height);
+ C(E.F,0,0,E.m.width,E.m.height);
+ for(let y=0;y<G.Y;y++){
+  for(let x=0;x<G.X;x++){
+   let t=G.M[y][x];
+// If not visible... just a blank hex upper layer
+   if(!t.v){
+    w(E.F,'#222');
+    j(E.F,t.d);
+    k(E.F,t.d);
+   }
+// If known but fog... static background upper layer.
+   else if(t.f){
+    w(E.F,'#000');
+    j(E.F,t.d);
+    w(E.F,'rgba(200,200,200,0.8)');
+    j(E.F,t.b.d);
+    k(E.F,t.d);
+   }
+// So visible... enjoy dynamic bg at lower layer.
+   else{
+    E.M.save();
+    w(E.M,V(240,250,180,200,160,180,0.6,0.9));
+    E.M.scale(f(0.98,0.99),f(0.98,0.99));
+    j(E.M,t.b.d);
+    E.M.restore();
+    E.M.setLineDash([2,G.s/6]);
+    K(E.M,'#0a0');
+    k(E.M,t.d);
+   }
+  }
+ }
+}
+// ma - Map Reval Around
+// Get an array of map tiles objects and set fog and visible flags.
+function ma(m,v){
+ let a=mv(m,v);
+ for(let i=0;i<a.length;i++){
+  a[i].v=1;
+  a[i].f=0;
+ }
+}
+// mv - Map Around
+// This function takes a source tile and vision number and returns an array
+// of map tiles around tile source according to vision.
+function mv(m,v){
+// Y odd rows moves different than even rows.
+ let o=m.Y%2;
+ let a=[];
+ for(let y=m.Y-1*v;y<=m.Y+1*v;y++){
+// Calculate X upper and lowest regarding odd or not.
+  let xu=m.X-1+1*v+o;
+  let xl=m.X-1*v+o;
+// Same Y as source has its own moves.
+  if(y==m.Y){xl-=o;xu+=1-o}
+  for(xl;xl<xu+1;xl++){
+// Check if calculation is a valid tile.
+   if((xl>-1&&xl<G.X)&&(y>-1&&y<G.Y)){
+    a.push(G.M[y][xl]);
+   }
+  }
+ }
+ return a;
+}
+// O - Identify Map Tile
+// TODO: Calculation could be better than just an aproximation.
+// Get event X, Y and calculates tile coordinates then confirmate it with
+// its hex path and return it.
+function O(x,y){
+// Try to get closest tile.
+ let ly=Math.floor(n(y)/(G.s/4*3*G.S));
+ let lx=Math.floor(N(x)/(G.s*G.S));
+// Check few around to get exactly the one.
+ for(let ty=ly;ty<ly+2;ty++){
+  for(let tx=lx-1;tx<lx+2;tx++){
+   if(ty<G.Y&&tx<G.X&&G.M[ty][tx]&&P(E.M,G.M[ty][tx].d,N(x),n(y))){
+    return G.M[ty][tx];
+   }
+  }
+ }
+ return null;
+}
+
+// Map Next
+// This function takes a source and target tile and returns the angle below
+// 180 degrees if it is continuos. Above 180 used for invalid.
+// It is used to rotate units to point move/attack targets.
+function mn(s,t){
+ if(!s||!t){
+  return 181;
+ }
+ var o=0;
+ if(s.Y%2){o=1;};
+ if(s.Y==t.Y&&s.X+1==t.X){
+  return -90;
+ }
+ else if(s.Y==t.Y&&s.X-1==t.X){
+  return 90;
+ }
+ else if(s.Y-1==t.Y&&(!o&&s.X-1==t.X||(o&&s.X==t.X))){
+  return 144;
+ }
+ else if(s.Y-1==t.Y&&(!o&&s.X==t.X||(o&&s.X+1==t.X))){
+  return -144;
+ }
+ else if(s.Y+1==t.Y&&(!o&&s.X-1==t.X||(o&&s.X==t.X))){
+  return 36;
+ }
+ else if(s.Y+1==t.Y&&(!o&&s.X==t.X||(o&&s.X+1==t.X))){
+  return -36;
+ }
+ else{
+  return 181;
+ }
+}
+// // // Game // // //
+// This set of functions control game flows.
+
+// S - Start Game
+// TODO: Instead a hardcoded scenario, it could be easily loaded from json.
+// Initializes game structs and main loop for redraws.
+function S(){
+// Set inital turn to 1
+ G.T=1;
+// Creates a new map
+ G.M=[];
+ for(let y=0;y<G.Y;y++){
+  G.M[y]=[]; 
+  for(let x=0;x<G.X;x++){
+   G.M[y][x]={'X':x,'Y':y,'v':0,'f':1,'b':{'x':s(3,8),'y':s(3,8),'s':s(3,4)}};
+  }
+ }
+// Calculate it.
+ m();
+// Create units.
+ G.U=[];
+ for(let p=0;p<G.p;p++){
+  G.U[p]=[];
+ }
+// Hardcoded scenario units.
+ ua(0,0,1,8,uB,'#777','B5',0,1,35,100,2,'0,0,255',2,0);
+ ua(0,1,7,8,uN,'#777','1701d',3,1,55,200,3,'0,0,255',2,0);
+// ua(1,0,23,7,uF,'#999','Cyl',1,1,30,100,1,'255,0,0');
+ for(let i=0;i<24;i+=3){
+  ua(1,i,G.X-1-i,6,uF,'#999','Cyl',1,1,30,100,1,'255,0,0',4,3);
+  ua(1,i+1,G.X-1-i,8,uF,'#999','Cyl',1,1,30,100,1,'255,0,0',4,3);
+  ua(1,i+2,G.X-1-i,10,uF,'#999','Cyl',1,1,30,100,1,'255,0,0',4,3);
+ }
+// Calculate them.
+ u();
+// Set UI flags.
+ G.I.i=0;
+ G.I.L=0;
+ G.I.l=0;
+ G.I.s=0;
+ G.I.J=0;
+// Set flag to redraw it.
+ G.i=1;
+// Map and Unit have their own intervals for effects.
+// Keep a reference to clear them when game is over.
+ G.J=setInterval(function(){G.m=1;},500);
+ G.K=setInterval(function(){G.u=1;},200);
+}
+// Next Turn
+// This function runs between turns.
+function nt(){
+// Play machine
+ PM();
+ G.T++;
+// Hardcoded surprise!
+ if(G.T==10){
+  ua(0,2,10,1,uG,'#777','BSG',2,1,45,100,2,'0,0,255',2,5);
+  G.U[0][2].D=1;
+ }
+// Reset Fog
+ for(let x=0;x<G.X;x++){
+  for(let y=0;y<G.Y;y++){
+   G.M[y][x].f=1;
+  }
+ }
+// Reset units and count alive
+ var a=[0,0];
+ for(let p=0;p<G.p;p++){
+  for(let i=0;i<G.U[p].length;i++){
+   let u=G.U[p][i];
+   u.a=u.A;
+   u.m=u.M;
+   if(!u.k){
+    a[p]++;
+   }
+   if(p==0){
+    ma(G.M[u.Y][u.X],u.v);
+   }
+  }
+ }
+// Check victory/defeat
+ if(G.U[0][0].k||G.U[0][1].k){
+  G.I.l=1;
+  p();
+ }
+ if(a[1]<1){
+  G.I.L=1;
+  p();
+ }
+// Unlock next button flag.
+ G.I.J=0;
+}
+
+// PM - Play Machine
+function PM(){
+ for(let i=0;i<G.U[1].length;i++){
+  let u=G.U[1][i];
+  if(u.k){
+// A killed unit doesn't play.
+   continue;
+  }
+  let m=u.m;
+  let k=0;
+  for(m;m>0;m--){
+   let b=mv(G.M[u.Y][u.X],u.v);
+   for(let t=0;t<b.length;t++){
+    if(u.a>0&&b[t].u&&b[t].u.p==0){
+     u.r=mn(G.M[u.Y][u.X],b[t]);
+     u.D=1;
+     uk(G.M[u.Y][u.X],b[t]);
+     A(3);
+     k=1;
+    }
+   }
+   if(k){
+    break;
+   }
+//   let o=u.Y%2;
+// go to target
+   let gx=u.X;
+   let gy=u.Y;
+   if(gx==0){
+    if(gy>8){
+     gy--;
+    }
+    else{
+     gy++;
+    }
+   }
+   else{
+    gx--;
+   }
+   let r=mn(G.M[u.Y][u.X],G.M[gy][gx]);
+   u.r=r;
+   u.D=1;
+   um(G.M[u.Y][u.X],G.M[gy][gx]);
+  }
+ }
+}
+
+// p - Game Over
+function p(){
+// Clear timers.
+ clearInterval(G.J);
+ clearInterval(G.K);
+// Set splash screen flag.
+ G.I.s=1;
+ G.i=1;
+}
+// l - Loop
+// This is main loop that controls redrawing canvas.
+function l(){
+// Just check for canvas flags when possible.
+ if(G.i){G.i=0;I();}
+// If set, clear it and redraw.
+ if(G.m){G.m=0;M();}
+ if(G.u){G.u=0;U();}
+// and once again...
+ requestAnimationFrame(l);
+}
+// // // Events // // //
+// This set are functions hooked to events.
+
+// L - Load
+// This is first function that runs when body is loaded and creates elements.
+function L(){
+// Set body style and create multiples canvas (layers)
+ E.b=document.body;
+ E.b.style.margin=0;
+ E.b.style.padding=0;
+ E.b.style.width='100%';
+ E.b.style.height='100%';
+ E.b.style.overflow='hidden';
+ Q('m',10,'m','M');
+ Q('u',20,'u','U');
+ Q('f',40,'f','F');
+ Q('i',50,'i','I');
+// Create an audio element to play sounds
+ E.a=document.createElement('audio');
+ E.b.appendChild(E.a);
+// Attach related functions to events.
+ E.a.addEventListener('ended',function(){G.a=0;});
+ E.i.addEventListener('mousedown',d);
+ E.i.addEventListener('mousemove',v);
+ E.i.addEventListener('mouseup',D);
+ E.i.addEventListener('wheel',W);
+ window.addEventListener("resize",R);
+// Set some globals
+ G.s=64;
+ G.S=2;
+ G.X=32;
+ G.Y=16;
+ G.p=2;
+ G.W=E.b.clientWidth;
+ G.H=E.b.clientHeight;
+ G.Z={};
+ G.I={};
+ G.I.s=1;
+ G.I.i=1;
+// Calculate UI
+ i();
+// Fire up loop.
+ setTimeout(l,10);
+}
+// R - Resize
+// This will re calculate and redraw UI when browser window changes size.
+function R(){
+ G.W=E.b.clientWidth;
+ G.H=E.b.clientHeight;
+ i();
+}
+// W - Mouse Wheel
+// This function is used to zoom in/out map and units.
+function W(e){
+// If splash flag nothing to do.
+ if(G.I.s){
+  return;
+ }
+// Check wheel direction to increase/decrease scale.
+ if(e.deltaY>0){G.S-=0.1;}
+ else{G.S+=0.1;}
+// Recalculate map and unit.
+ m();
+ u();
+}
+// d - Mouse Down
+// This function gets when mouse button is pressed.
+function d(e){
+// Get cursor position.
+ G.Z.x=e.clientX;
+ G.Z.y=e.clientY;
+// If splash, noting to do.
+ if(G.I.s){
+  return;
+ }
+// Get map tile for that position.
+ G.Z.m=O(G.Z.x,G.Z.y);
+ if(G.Z.m&&G.Z.m.u){
+// If it has a unit reference, also get the unit.
+  G.Z.u=G.U[G.Z.m.u.p][G.Z.m.u.i];
+ }
+// Redraw UI
+ G.i=1;
+}
+// v - Mouse Move
+// This function runs anytime mouse move over UI canvas.
+function v(e){
+// Get new cursor position.
+ G.Z.X=e.clientX;
+ G.Z.Y=e.clientY;
+// Change cursor pointer for button
+ if(P(E.I,G.I.B,G.Z.X,G.Z.Y)){
+  E.i.style.cursor='pointer';
+  G.I.O=4;
+  G.i=1;
+ }
+ else{
+  E.i.style.cursor='default';
+ }
+// If no source tile or splash flag, nothing to do.
+ if(!G.Z.m||G.I.s){
+  return;
+ }
+// If function reachs here is because button was pushed inside a valid tile
+// and it still is pushed.
+// Get map tile is position is inside a a tile hex path.
+ G.Z.M=O(G.Z.X,G.Z.Y);
+// A unit Source is selected and a target map tile.
+ if(G.Z.u&&G.Z.M){
+// If it is a machine unit, noting to do. No cheat!
+  if(G.Z.u.p==1){
+   return;
+  }
+// Get right angle is source and target tile are continuos.
+  let a=mn(G.Z.m,G.Z.M);
+// Check if it is valid.
+  if(a<181){
+// Set new rotation and redraw flag for source unit.
+   G.Z.u.r=a;
+   G.Z.u.D=1;
+// If it is targeting a computer unit and has attack.
+   if(G.Z.u.a>0&&G.Z.M.u&&G.Z.M.u.p==1){
+// Get target unit.
+    G.Z.U=G.U[G.Z.M.u.p][G.Z.M.u.i];
+// Set attack "pointer" and color effect.
+    G.Z.c='#f00';
+    G.Z.p=at;
+   }
+// An empty map tile is target and unit has moves.
+   else if(G.Z.u.m>0&&a<181&&G.Z.M&&!G.Z.M.u){
+// Set move "pointer" and color effect.
+    G.Z.c='#0f0';
+    G.Z.p=at;
+   }
+  }
+// Not a valid continuos tile, no effect at all.
+  else{
+   G.Z.c=null;
+   G.Z.p=null;
+  }
+// Redraw UI.
+ G.i=1;
+ }
+// If no unit selected and dragging, it is about to move map.
+ else{
+// Get a difference for top and left.
+  let t=-n(0)+(G.Z.Y-G.Z.y)/6;
+  let l=-N(0)+(G.Z.X-G.Z.x)/6;
+// Only move between map size limits.
+  if(t>0){o(0)}
+  else if(t<G.H-G.h){o(G.H-G.h)}
+  else{o(t)}
+  if(l>0){q(0)}
+  else if(l<G.W-G.w){q(G.W-G.w)}
+  else{q(l)}
+ }
+}
+// D - Mouse Up
+function D(e){
+// Rewrite target coordinates from move.
+ G.Z.X=e.clientX;
+ G.Z.Y=e.clientY;
+// Check if it was just a click.
+ if(G.Z.x-G.Z.X+G.Z.y-G.Z.Y==0){
+// If splash screen flag.
+  if(G.I.s){
+// Check if click on start button.
+   if(P(E.I,G.I.B,G.Z.X,G.Z.Y)){
+// If so, fire up the game.
+    S();
+   }
+// Noting else to do.
+   return;
+  }
+// Instead in game and next turn button.
+  else if(P(E.I,G.I.B,G.Z.X,G.Z.Y)&&!G.I.J){
+// Set UI lock flag to avoid multiple next turns events.
+   G.I.J=1;
+   nt();
+  }
+// Instead in game and click on a unit on a visible tile.
+  else if(G.Z.u&&G.Z.m.v&&!G.Z.m.f){
+// Set effect to 5 frames.
+   G.Z.u.S=10;
+   A(G.Z.u.t);
+  }
+ }
+// If function reachs here is last step of dragging.
+// Only allow commands from player to player units.
+ if(G.Z.u&&G.Z.u.p==0){
+// if there is a target computer unit.
+  if(G.Z.U){
+// Attack it!
+   uk(G.Z.m,G.Z.M);
+   A(G.Z.u.q);
+  }
+// Instead a free continuos tile map.
+  else if(G.Z.M&&mn(G.Z.m,G.Z.M)<181){
+// Move on.
+   um(G.Z.m,G.Z.M);
+   A(1);
+  }
+ }
+// Clear input global and redraw UI.
+ G.Z={};
+ G.i=1;
+}
+</script>
+</head>
+<body onload="L()">
+</body>
+</html>
